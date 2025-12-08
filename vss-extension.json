@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json.schemastore.org/vss-extension",
+  "manifestVersion": 1,
+  "id": "rs-ms-ext-demo",
+  "version": "0.1.0",
+  "name": "Rspack Azure DevOps Extension Demo",
+  "description": "Demo extension built with React and rspack tooling",
+  "publisher": "your-publisher-id",
+  "categories": ["Azure Repos"],
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "icons": {
+    "default": "images/icon.png"
+  },
+  "content": {
+    "details": {
+      "path": "README.md"
+    }
+  },
+  "files": [
+    {
+      "path": "dist",
+      "addressable": true
+    },
+    {
+      "path": "images",
+      "addressable": true
+    }
+  ],
+  "contributions": [
+    {
+      "id": "demo-hub",
+      "type": "ms.vss-web.hub",
+      "targets": ["ms.vss-code-web.code-hub-group"],
+      "properties": {
+        "name": "Demo Hub",
+        "uri": "dist/hub.html",
+        "icon": "images/icon.png"
+      }
+    }
+  ],
+  "scopes": ["vso.code"]
+}

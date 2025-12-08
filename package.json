@@ -1,0 +1,42 @@
+{
+  "name": "rs-ms-ext",
+  "version": "0.1.0",
+  "description": "Demo project for Azure DevOps/GitHub extensions with React and rspack tooling",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "rsbuild dev",
+    "build": "rsbuild build",
+    "preview": "rsbuild preview",
+    "package": "npm run build && tfx extension create --manifest-globs vss-extension.json",
+    "lint": "rsox lint src",
+    "typecheck": "tsc --noEmit",
+    "test": "rstest",
+    "test:watch": "rstest --watch",
+    "test:coverage": "rstest --coverage"
+  },
+  "dependencies": {
+    "azure-devops-extension-api": "^4.248.0",
+    "azure-devops-extension-sdk": "^4.0.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@rsbuild/core": "^1.1.10",
+    "@rsbuild/plugin-react": "^1.1.0",
+    "@rstest/core": "^0.7.0",
+    "@rstest/coverage-istanbul": "^0.1.0",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "jsdom": "^27.2.0",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "npm@10.9.0"
+}
