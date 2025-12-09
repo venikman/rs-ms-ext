@@ -7,111 +7,55 @@ describe('App Component', () => {
     cleanup();
   });
 
-  test('renders header with title', () => {
+  test('renders header and navigation', () => {
     render(<App />);
     expect(screen.getByText('Azure DevOps Extension')).toBeTruthy();
-  });
-
-  test('shows demo mode badge', () => {
-    render(<App />);
-    expect(screen.getByText('DEMO MODE')).toBeTruthy();
-  });
-
-  test('shows demo notice', () => {
-    render(<App />);
-    expect(screen.getByText(/Running in standalone demo mode/i)).toBeTruthy();
-  });
-
-  test('shows build info', () => {
-    render(<App />);
-    expect(screen.getByText('Built with React 19 + Rsbuild')).toBeTruthy();
-  });
-
-  test('renders navigation tabs', () => {
-    render(<App />);
     expect(screen.getByText('Overview')).toBeTruthy();
     expect(screen.getByText('Work items')).toBeTruthy();
     expect(screen.getByText('Settings')).toBeTruthy();
+    expect(
+      screen.getByText(/Running in standalone demo mode\. Deploy to Azure DevOps to see live project data\./i)
+    ).toBeTruthy();
   });
 
-  test('shows overview by default', () => {
-    render(<App />);
-    expect(screen.getByText('Project Information')).toBeTruthy();
-    expect(screen.getByText('Work Item Stats')).toBeTruthy();
-    expect(screen.getByText('Quick Actions')).toBeTruthy();
+  test('shows work items when navigating', () => {
+    render(<App initialTab="work-items" />);
+    expect(screen.getByText((text) => text.includes('#1234'))).toBeTruthy();
+    expect(screen.getByText((text) => text.includes('#1239'))).toBeTruthy();
+    expect(screen.getAllByText(/Active/i).length).toBeGreaterThan(0);
   });
 
-  test('displays project info', () => {
-    render(<App />);
-    expect(screen.getByText('Demo Project')).toBeTruthy();
-    expect(screen.getByText('demo-12345-abcde')).toBeTruthy();
-  });
-
-  test('switches to work items tab', () => {
-    render(<App />);
-    fireEvent.click(screen.getByText('Work items'));
-    expect(screen.getByText('#1234')).toBeTruthy();
-    expect(screen.getByText('Fix login authentication flow')).toBeTruthy();
-  });
-
-  test('displays work item icons', () => {
-    render(<App />);
-    fireEvent.click(screen.getByText('Work items'));
-    // Multiple bugs and tasks exist, use getAllByText
-    expect(screen.getAllByText('🐛').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('📋').length).toBeGreaterThan(0);
-    expect(screen.getByText('✨')).toBeTruthy();
-  });
-
-  test('switches to settings tab', () => {
-    render(<App />);
-    fireEvent.click(screen.getByText('Settings'));
-    expect(screen.getByText('Refresh interval')).toBeTruthy();
-    expect(screen.getByText('Save Settings')).toBeTruthy();
-  });
-
-  test('shows settings checkboxes', () => {
-    render(<App />);
-    fireEvent.click(screen.getByText('Settings'));
-    expect(screen.getByText('Show notifications for work item updates')).toBeTruthy();
-    expect(screen.getByText('Enable dark mode (coming soon)')).toBeTruthy();
-  });
-
-  test('can switch back to overview', () => {
-    render(<App />);
-    fireEvent.click(screen.getByText('Settings'));
-    fireEvent.click(screen.getByText('Overview'));
-    expect(screen.getByText('Project Information')).toBeTruthy();
-  });
-
-  test('renders error state with initialError prop', () => {
+  test('renders error state when provided', () => {
     render(<App initialError="Test error message" />);
     expect(screen.getByText('Error')).toBeTruthy();
     expect(screen.getByText('Test error message')).toBeTruthy();
   });
+});
 
-  test('renders error display styling with initialError', () => {
-    render(<App initialError="Connection failed" />);
-    const errorBox = document.querySelector('.bg-red-50');
-    expect(errorBox).toBeTruthy();
+describe('App Component (full UI mode)', () => {
+  afterEach(() => {
+    cleanup();
   });
 
-  test('does not show loading when initialError is set', () => {
-    render(<App initialError="Some error" />);
-    const spinner = document.querySelector('.animate-spin');
-    expect(spinner).toBeFalsy();
+  test('renders overview with azure-devops-ui components', () => {
+    render(<App forceFullUi />);
+    expect(screen.getByText('Azure DevOps Extension')).toBeTruthy();
+    expect(screen.getByText('Project summary')).toBeTruthy();
+    expect(screen.getByText('Work item health')).toBeTruthy();
+    expect(screen.getByText('Demo environment')).toBeTruthy();
   });
 
-  test('forceDemo prop forces demo mode', () => {
-    render(<App forceDemo={true} />);
-    expect(screen.getByText('DEMO MODE')).toBeTruthy();
-    expect(screen.getByText('Demo Project')).toBeTruthy();
-  });
+  test('switches tabs and shows work items and settings in full UI', () => {
+    render(<App forceFullUi />);
 
-  test('forceDemo shows mock work items', () => {
-    render(<App forceDemo={true} />);
     fireEvent.click(screen.getByText('Work items'));
-    expect(screen.getByText('#1234')).toBeTruthy();
-    expect(screen.getByText('#1235')).toBeTruthy();
+    expect(screen.getByText((text) => text.includes('#1234'))).toBeTruthy();
+    expect(screen.getAllByText(/Active/i).length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByText('Settings'));
+    expect(screen.getByText('Email notifications')).toBeTruthy();
+
+    fireEvent.click(screen.getByText('Manual only'));
+    expect(screen.getByText(/Current cadence: Manual only/)).toBeTruthy();
   });
 });

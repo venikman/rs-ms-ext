@@ -16,11 +16,13 @@
     "typecheck": "tsc --noEmit",
     "test": "rstest",
     "test:watch": "rstest --watch",
-    "test:coverage": "rstest --coverage"
+    "test:coverage": "rstest --coverage",
+    "test:report": "rstest --reporter verbose --coverage"
   },
   "dependencies": {
     "azure-devops-extension-api": "^4.248.0",
     "azure-devops-extension-sdk": "^4.0.2",
+    "azure-devops-ui": "^2.265.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

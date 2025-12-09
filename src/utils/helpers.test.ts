@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from '@rstest/core';
 import {
   isAzureDevOpsHost,
-  getStateColorClasses,
+  getStateStatus,
   getTypeIcon,
   countByState,
   formatTabLabel,
@@ -88,35 +88,35 @@ describe('isAzureDevOpsHost', () => {
   });
 });
 
-describe('getStateColorClasses', () => {
-  test('returns correct classes for New state', () => {
-    expect(getStateColorClasses('New')).toBe('bg-blue-100 text-blue-800');
+describe('getStateStatus', () => {
+  test('returns queued status for New', () => {
+    expect(getStateStatus('New')).toMatchObject({ color: 'neutral', text: 'New' });
   });
 
-  test('returns correct classes for Active state', () => {
-    expect(getStateColorClasses('Active')).toBe('bg-yellow-100 text-yellow-800');
+  test('returns running status for Active', () => {
+    expect(getStateStatus('Active')).toMatchObject({ color: 'active', text: 'Active' });
   });
 
-  test('returns correct classes for Resolved state', () => {
-    expect(getStateColorClasses('Resolved')).toBe('bg-green-100 text-green-800');
+  test('returns success status for Resolved', () => {
+    expect(getStateStatus('Resolved')).toMatchObject({ color: 'success', text: 'Resolved' });
   });
 
-  test('returns correct classes for Closed state', () => {
-    expect(getStateColorClasses('Closed')).toBe('bg-gray-100 text-gray-800');
+  test('returns canceled status for Closed', () => {
+    expect(getStateStatus('Closed')).toMatchObject({ color: 'neutral', text: 'Closed' });
   });
 });
 
 describe('getTypeIcon', () => {
-  test('returns bug emoji for Bug type', () => {
-    expect(getTypeIcon('Bug')).toBe('🐛');
+  test('returns glyph and label for Bug type', () => {
+    expect(getTypeIcon('Bug')).toEqual({ glyph: '🐛', label: 'Bug work item' });
   });
 
-  test('returns clipboard emoji for Task type', () => {
-    expect(getTypeIcon('Task')).toBe('📋');
+  test('returns glyph and label for Task type', () => {
+    expect(getTypeIcon('Task')).toEqual({ glyph: '📋', label: 'Task work item' });
   });
 
-  test('returns sparkles emoji for Feature type', () => {
-    expect(getTypeIcon('Feature')).toBe('✨');
+  test('returns glyph and label for Feature type', () => {
+    expect(getTypeIcon('Feature')).toEqual({ glyph: '✨', label: 'Feature work item' });
   });
 });
 
@@ -181,7 +181,7 @@ describe('formatTabLabel', () => {
 
 describe('mockWorkItems', () => {
   test('contains expected number of items', () => {
-    expect(mockWorkItems).toHaveLength(5);
+    expect(mockWorkItems).toHaveLength(7);
   });
 
   test('contains items with required properties', () => {
@@ -198,6 +198,7 @@ describe('mockWorkItems', () => {
     expect(states).toContain('New');
     expect(states).toContain('Active');
     expect(states).toContain('Resolved');
+    expect(states).toContain('Closed');
   });
 
   test('contains various types', () => {

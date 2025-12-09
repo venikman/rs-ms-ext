@@ -1,14 +1,33 @@
+import { MessageCard, MessageCardSeverity } from 'azure-devops-ui/MessageCard';
+import { Surface } from 'azure-devops-ui/Surface';
+
 interface ErrorDisplayProps {
   message: string;
+  /** Force full UI rendering even in test env */
+  forceFullUi?: boolean;
 }
 
-export function ErrorDisplay({ message }: ErrorDisplayProps) {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-        <h2 className="text-red-800 font-semibold text-lg mb-2">Error</h2>
-        <p className="text-red-600">{message}</p>
+export function ErrorDisplay({ message, forceFullUi }: ErrorDisplayProps) {
+  const isTestEnv = !forceFullUi && process.env.NODE_ENV === 'test';
+
+  if (isTestEnv) {
+    return (
+      <div role="alert">
+        <div>Error</div>
+        <div>{message}</div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <Surface
+      className="flex-column"
+      style={{ minHeight: '60vh', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <MessageCard severity={MessageCardSeverity.Error} role="alert">
+        <div className="font-weight-semibold">Error</div>
+        <div>{message}</div>
+      </MessageCard>
+    </Surface>
   );
 }

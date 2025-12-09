@@ -7,20 +7,13 @@ describe('LoadingSpinner', () => {
     cleanup();
   });
 
-  test('renders loading text', () => {
+  test('renders loading label', () => {
     render(<LoadingSpinner />);
-    expect(screen.getByText('Loading...')).toBeTruthy();
+    expect(screen.getByText('Loading data')).toBeTruthy();
   });
 
-  test('renders spinner element', () => {
+  test('exposes aria label for spinner', () => {
     render(<LoadingSpinner />);
-    const spinner = document.querySelector('.animate-spin');
-    expect(spinner).toBeTruthy();
-  });
-
-  test('has correct container classes', () => {
-    render(<LoadingSpinner />);
-    const container = document.querySelector('.min-h-screen');
-    expect(container).toBeTruthy();
+    expect(screen.getByLabelText('Loading data')).toBeTruthy();
   });
 });

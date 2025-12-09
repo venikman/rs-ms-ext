@@ -1,3 +1,5 @@
+import type { IStatusProps } from 'azure-devops-ui/Status';
+import { Statuses } from 'azure-devops-ui/Status';
 import type { WorkItem, WorkItemState, WorkItemType } from './types';
 
 /**
@@ -12,26 +14,26 @@ export function isAzureDevOpsHost(): boolean {
 }
 
 /**
- * Get CSS classes for work item state badges
+ * Get Status props for work item state pills in azure-devops-ui
  */
-export function getStateColorClasses(state: WorkItemState): string {
-  const stateColors: Record<WorkItemState, string> = {
-    New: 'bg-blue-100 text-blue-800',
-    Active: 'bg-yellow-100 text-yellow-800',
-    Resolved: 'bg-green-100 text-green-800',
-    Closed: 'bg-gray-100 text-gray-800',
+export function getStateStatus(state: WorkItemState): IStatusProps {
+  const stateStatuses: Record<WorkItemState, IStatusProps> = {
+    New: { ...Statuses.Queued, text: 'New' },
+    Active: { ...Statuses.Running, text: 'Active' },
+    Resolved: { ...Statuses.Success, text: 'Resolved' },
+    Closed: { ...Statuses.Canceled, text: 'Closed' },
   };
-  return stateColors[state];
+  return stateStatuses[state];
 }
 
 /**
- * Get emoji icon for work item type
+ * Icon info for work item type
  */
-export function getTypeIcon(type: WorkItemType): string {
-  const typeIcons: Record<WorkItemType, string> = {
-    Bug: '🐛',
-    Task: '📋',
-    Feature: '✨',
+export function getTypeIcon(type: WorkItemType): { glyph: string; label: string } {
+  const typeIcons: Record<WorkItemType, { glyph: string; label: string }> = {
+    Bug: { glyph: '🐛', label: 'Bug work item' },
+    Task: { glyph: '📋', label: 'Task work item' },
+    Feature: { glyph: '✨', label: 'Feature work item' },
   };
   return typeIcons[type];
 }
@@ -59,6 +61,8 @@ export const mockWorkItems: WorkItem[] = [
   { id: 1236, title: 'Update dependencies to latest', state: 'Active', type: 'Task' },
   { id: 1237, title: 'Improve error handling', state: 'Resolved', type: 'Bug' },
   { id: 1238, title: 'Add unit tests for API', state: 'New', type: 'Task' },
+  { id: 1239, title: 'Refine backlog grooming template', state: 'Closed', type: 'Task' },
+  { id: 1240, title: 'Optimize dashboard queries', state: 'Resolved', type: 'Feature' },
 ];
 
 /**

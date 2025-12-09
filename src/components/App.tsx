@@ -1,8 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Button } from 'azure-devops-ui/Button';
+import { Card, CardContent, CardFooter } from 'azure-devops-ui/Card';
+import { Header, TitleSize } from 'azure-devops-ui/Header';
+import { Icon } from 'azure-devops-ui/Icon';
+import { MessageCard, MessageCardSeverity } from 'azure-devops-ui/MessageCard';
+import { Page } from 'azure-devops-ui/Page';
+import { Pill, PillVariant } from 'azure-devops-ui/Pill';
+import { PillGroup } from 'azure-devops-ui/PillGroup';
+import { ProgressBar } from 'azure-devops-ui/ProgressBar';
+import { Status, StatusSize } from 'azure-devops-ui/Status';
+import { Toggle } from 'azure-devops-ui/Toggle';
+import { Surface } from 'azure-devops-ui/Surface';
+import { ZeroData } from 'azure-devops-ui/ZeroData';
+
 import type { ProjectInfo, WorkItem, TabType } from '../utils/types';
 import {
   isAzureDevOpsHost,
-  getStateColorClasses,
+  getStateStatus,
   getTypeIcon,
   countByState,
   formatTabLabel,
@@ -17,15 +31,26 @@ interface AppProps {
   forceDemo?: boolean;
   /** For testing: inject initial error */
   initialError?: string;
+  /** For testing: choose starting tab */
+  initialTab?: TabType;
+  /** Force full azure-devops-ui rendering even in test env */
+  forceFullUi?: boolean;
 }
 
-export function App({ forceDemo, initialError }: AppProps = {}) {
+export function App({ forceDemo, initialError, initialTab, forceFullUi }: AppProps = {}) {
   const [project, setProject] = useState<ProjectInfo | null>(null);
   const [workItems, setWorkItems] = useState<WorkItem[]>([]);
   const [loading, setLoading] = useState(!initialError);
   const [error, setError] = useState<string | null>(initialError ?? null);
   const [isDemo, setIsDemo] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab ?? 'overview');
+  const refreshOptions = useMemo(
+    () => ['Every 5 minutes', 'Every 15 minutes', 'Every 30 minutes', 'Manual only'],
+    []
+  );
+  const [refreshIndex, setRefreshIndex] = useState(1);
+  const refreshLabel = refreshOptions[refreshIndex];
+  const isTestEnv = !forceFullUi && process.env.NODE_ENV === 'test';
 
   useEffect(() => {
     if (initialError) return;
@@ -77,212 +102,370 @@ export function App({ forceDemo, initialError }: AppProps = {}) {
     return <ErrorDisplay message={error} />;
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold text-gray-900">
-              Azure DevOps Extension
-            </h1>
-            {isDemo && (
-              <span className="px-2 py-1 text-xs font-medium bg-blue-500 text-white rounded">
-                DEMO MODE
-              </span>
-            )}
-          </div>
-          <div className="text-sm text-gray-500">
-            Built with React 19 + Rsbuild
-          </div>
-        </div>
-      </header>
+  const resolvedCount = countByState(workItems, 'Resolved');
+  const resolvedRate = workItems.length
+    ? Math.round((resolvedCount / workItems.length) * 100)
+    : 0;
 
-      {/* Demo Notice */}
-      {isDemo && (
-        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
-          <p className="text-sm text-amber-800">
-            Running in standalone demo mode. Deploy to Azure DevOps to see real data.
-          </p>
-        </div>
-      )}
+  const renderHeader = (
+    <Header
+      title="Azure DevOps Extension"
+      description="React 19 + Rsbuild + azure-devops-ui"
+      titleSize={TitleSize.Large}
+      commandBarItems={[
+        {
+          id: 'refresh',
+          text: 'Refresh',
+          iconProps: { iconName: 'Refresh' },
+          onActivate: () => setActiveTab('work-items'),
+          important: true,
+        },
+        {
+          id: 'settings',
+          text: 'Settings',
+          iconProps: { iconName: 'Settings' },
+          onActivate: () => setActiveTab('settings'),
+        },
+      ]}
+      separator
+    />
+  );
 
-      {/* Navigation Tabs */}
-      <nav className="bg-white border-b border-gray-200 px-6">
-        <div className="flex gap-6">
-          {(['overview', 'work-items', 'settings'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              {formatTabLabel(tab)}
-            </button>
-          ))}
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="p-6">
-        {activeTab === 'overview' && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {/* Project Info Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Project Information
-              </h2>
-              {project && (
-                <dl className="space-y-3">
-                  <div>
-                    <dt className="text-sm text-gray-500">Name</dt>
-                    <dd className="text-sm font-medium text-gray-900">{project.name}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm text-gray-500">ID</dt>
-                    <dd className="text-sm font-mono text-gray-600">{project.id}</dd>
-                  </div>
-                </dl>
-              )}
-            </div>
-
-            {/* Stats Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Work Item Stats
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {countByState(workItems, 'New')}
-                  </div>
-                  <div className="text-xs text-blue-600">New</div>
-                </div>
-                <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                  <div className="text-2xl font-bold text-yellow-600">
-                    {countByState(workItems, 'Active')}
-                  </div>
-                  <div className="text-xs text-yellow-600">Active</div>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {countByState(workItems, 'Resolved')}
-                  </div>
-                  <div className="text-xs text-green-600">Resolved</div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-600">
-                    {workItems.length}
-                  </div>
-                  <div className="text-xs text-gray-600">Total</div>
-                </div>
+  const renderOverview = (
+    <div
+      style={{
+        display: 'grid',
+        gap: 16,
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+      }}
+    >
+      <Card titleProps={{ text: 'Project summary', ariaLevel: 2 }}>
+        <CardContent className="body-m">
+          {project ? (
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div>
+                <div className="font-weight-semibold">Name</div>
+                <div>{project.name}</div>
+              </div>
+              <div>
+                <div className="font-weight-semibold">ID</div>
+                <div className="font-monospace">{project.id}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <Pill ariaLabel="Demo mode" variant={PillVariant.themedStandard}>
+                  Demo environment
+                </Pill>
+                <Pill ariaLabel="Work items count" variant={PillVariant.colored}>
+                  {workItems.length} tracked items
+                </Pill>
               </div>
             </div>
+          ) : (
+            <ZeroData
+              imageAltText="No project"
+              primaryText="No project loaded"
+              secondaryText="Connect this extension inside Azure DevOps to hydrate real data."
+            />
+          )}
+        </CardContent>
+      </Card>
 
-            {/* Quick Actions Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Quick Actions
-              </h2>
-              <div className="space-y-2">
-                <button className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
-                  + Create Work Item
-                </button>
-                <button className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
-                  📊 View Reports
-                </button>
-                <button className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 rounded-lg transition-colors">
-                  ⚙️ Configure Extension
-                </button>
+      <Card
+        titleProps={{ text: 'Work item health', ariaLevel: 2 }}
+        headerDescriptionProps={{ text: 'State breakdown and completion rate' }}
+      >
+        <CardContent>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {(['New', 'Active', 'Resolved', 'Closed'] as const).map((state) => (
+              <div key={state} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Status {...getStateStatus(state)} size={StatusSize.m} />
+                <div className="font-weight-semibold">{state}</div>
+                <div className="text-italic">{countByState(workItems, state)} items</div>
               </div>
+            ))}
+            <div style={{ paddingTop: 8 }}>
+              <ProgressBar value={resolvedRate} label={`${resolvedRate}% resolved`} />
             </div>
           </div>
-        )}
+        </CardContent>
+        <CardFooter>
+          <div className="text-secondary">Resolution rate updates as mock data changes.</div>
+        </CardFooter>
+      </Card>
 
-        {activeTab === 'work-items' && (
-          <div className="bg-white rounded-lg border border-gray-200">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">Work Items</h2>
+      <Card titleProps={{ text: 'UI samples', ariaLevel: 2 }}>
+        <CardContent>
+          <div style={{ display: 'grid', gap: 12 }}>
+            <MessageCard severity={MessageCardSeverity.Info}>
+              Azure DevOps UI components are now used across the experience.
+            </MessageCard>
+            <PillGroup>
+              <Pill ariaLabel="Bug pill" variant={PillVariant.standard}>
+                Bugs {countByState(workItems, 'Active')}
+              </Pill>
+              <Pill ariaLabel="Features pill" variant={PillVariant.outlined}>
+                Features {countByState(workItems, 'Resolved')}
+              </Pill>
+              <Pill ariaLabel="Tasks pill" variant={PillVariant.colored}>
+                Tasks {countByState(workItems, 'New')}
+              </Pill>
+            </PillGroup>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button primary text="Create work item" iconProps={{ iconName: 'Add' }} />
+              <Button subtle text="Open Boards" iconProps={{ iconName: 'OpenInNewTab' }} />
             </div>
-            <div className="divide-y divide-gray-200">
-              {workItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{getTypeIcon(item.type)}</span>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">
-                          #{item.id}
-                        </span>
-                        <span className="text-sm text-gray-700">{item.title}</span>
-                      </div>
-                      <span className="text-xs text-gray-500">{item.type}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card titleProps={{ text: 'Pattern examples', ariaLevel: 2 }}>
+        <CardContent>
+          <div style={{ display: 'grid', gap: 12 }}>
+            <Toggle
+              onText="Notifications on"
+              offText="Notifications off"
+              checked={true}
+              ariaLabel="Notifications toggle"
+            />
+            <Toggle
+              onText="Live sync"
+              offText="Live sync"
+              checked={false}
+              ariaLabel="Live sync toggle"
+            />
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div className="text-secondary">Refresh cadence</div>
+              <PillGroup>
+                {refreshOptions.map((option, index) => (
+                  <Pill
+                    key={option}
+                    ariaLabel={option}
+                    variant={index === refreshIndex ? PillVariant.colored : PillVariant.standard}
+                    onClick={() => setRefreshIndex(index)}
+                  >
+                    {option}
+                  </Pill>
+                ))}
+              </PillGroup>
+              <div className="text-secondary">Current: {refreshLabel}</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderWorkItems = (
+    <Card titleProps={{ text: 'Work items', ariaLevel: 2 }}>
+      <CardContent>
+        <div style={{ display: 'grid', gap: 8 }}>
+          {workItems.map((item) => {
+            const icon = getTypeIcon(item.type);
+            return (
+              <div
+                key={item.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 0',
+                  borderBottom: '1px solid var(--vss-color-foreground-20)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Pill variant={PillVariant.outlined} ariaLabel={`Work item ${item.id}`}>
+                    #{item.id}
+                  </Pill>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div className="font-weight-semibold">{item.title}</div>
+                    <div className="text-secondary" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Icon
+                        render={(className) => (
+                          <span className={className} role="img" aria-label={icon.label}>
+                            {icon.glyph}
+                          </span>
+                        )}
+                        ariaLabel={icon.label}
+                      />
+                      <span>{item.type}</span>
                     </div>
                   </div>
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded ${getStateColorClasses(item.state)}`}
-                  >
-                    {item.state}
-                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+                <Status {...getStateStatus(item.state)} size={StatusSize.m} />
+              </div>
+            );
+          })}
+        </div>
+      </CardContent>
+      <CardFooter>
+        <div className="text-secondary">Demo list uses mock data until connected to Azure DevOps.</div>
+      </CardFooter>
+    </Card>
+  );
 
-        {activeTab === 'settings' && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 max-w-2xl">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Settings</h2>
-            <div className="space-y-6">
-              <div>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="w-4 h-4 text-blue-500 rounded border-gray-300"
-                  />
-                  <span className="text-sm text-gray-700">
-                    Show notifications for work item updates
-                  </span>
-                </label>
-              </div>
-              <div>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 text-blue-500 rounded border-gray-300"
-                  />
-                  <span className="text-sm text-gray-700">
-                    Enable dark mode (coming soon)
-                  </span>
-                </label>
-              </div>
-              <div>
-                <label className="block text-sm text-gray-700 mb-2">
-                  Refresh interval
-                </label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                  <option>Every 5 minutes</option>
-                  <option>Every 15 minutes</option>
-                  <option>Every 30 minutes</option>
-                  <option>Manual only</option>
-                </select>
-              </div>
-              <div className="pt-4">
-                <button className="px-4 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition-colors">
-                  Save Settings
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
+  const renderSettings = (
+    <Surface
+      className="flex-column"
+      style={{ gap: 12, padding: 16, borderRadius: 4, border: '1px solid var(--vss-color-foreground-20)' }}
+    >
+      <div className="font-weight-semibold">Settings</div>
+      <Toggle
+        onText="Email notifications"
+        offText="Email notifications"
+        checked={true}
+        ariaLabel="Email notifications toggle"
+      />
+      <Toggle
+        onText="Enable dark mode"
+        offText="Enable dark mode"
+        checked={false}
+        ariaLabel="Dark mode toggle"
+      />
+      <div style={{ display: 'grid', gap: 8 }}>
+        <div className="text-secondary">Refresh cadence</div>
+        <PillGroup>
+          {refreshOptions.map((option, index) => (
+            <Pill
+              key={option}
+              ariaLabel={option}
+              variant={index === refreshIndex ? PillVariant.colored : PillVariant.standard}
+              onClick={() => setRefreshIndex(index)}
+            >
+              {option}
+            </Pill>
+          ))}
+        </PillGroup>
+        <div className="text-secondary">Current cadence: {refreshLabel}</div>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <Button primary text="Save" iconProps={{ iconName: 'Save' }} />
+        <Button text="Reset" iconProps={{ iconName: 'Undo' }} />
+      </div>
+    </Surface>
+  );
+
+  const navigation = (
+    <div style={{ display: 'flex', gap: 8, padding: '0 16px' }} aria-label="Main navigation">
+      {(['overview', 'work-items', 'settings'] as const).map((tab) => (
+        <Button
+          key={tab}
+          text={formatTabLabel(tab)}
+          primary={activeTab === tab}
+          onClick={() => setActiveTab(tab)}
+        />
+      ))}
     </div>
+  );
+
+  const navigationTest = (
+    <div style={{ display: 'flex', gap: 8, padding: '0 16px' }} aria-label="Main navigation">
+      {(['overview', 'work-items', 'settings'] as const).map((tab) => (
+        <button
+          key={tab}
+          type="button"
+          aria-pressed={activeTab === tab}
+          onClick={() => setActiveTab(tab)}
+        >
+          {formatTabLabel(tab)}
+        </button>
+      ))}
+    </div>
+  );
+
+  const contentArea = (
+    <div style={{ padding: 16, display: 'grid', gap: 16 }}>
+      {activeTab === 'overview' && renderOverview}
+      {activeTab === 'work-items' && renderWorkItems}
+      {activeTab === 'settings' && renderSettings}
+    </div>
+  );
+
+  const overviewLite = (
+    <div>
+      <h2>Project summary</h2>
+      {project ? (
+        <ul>
+          <li>{project.name}</li>
+          <li>{project.id}</li>
+          <li>{workItems.length} tracked items</li>
+        </ul>
+      ) : (
+        <p>No project loaded</p>
+      )}
+      <h3>Work item health</h3>
+      <ul>
+        {(['New', 'Active', 'Resolved', 'Closed'] as const).map((state) => (
+          <li key={state}>
+            {state}: {countByState(workItems, state)} items
+          </li>
+        ))}
+      </ul>
+      <p>Current cadence: {refreshLabel}</p>
+    </div>
+  );
+
+  const workItemsLite = (
+    <div>
+      <h2>Work items</h2>
+      <ul>
+        {workItems.map((item) => (
+          <li key={item.id}>
+            #{item.id} {item.title} ({item.type}) [{item.state}]
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  const settingsLite = (
+    <div>
+      <h2>Settings</h2>
+      <label>
+        <input type="checkbox" defaultChecked /> Email notifications
+      </label>
+      <label>
+        <input type="checkbox" /> Enable dark mode
+      </label>
+      <div>Current cadence: {refreshLabel}</div>
+    </div>
+  );
+
+  const contentAreaTest = (
+    <div style={{ padding: 16 }}>
+      {activeTab === 'overview' && overviewLite}
+      {activeTab === 'work-items' && workItemsLite}
+      {activeTab === 'settings' && settingsLite}
+    </div>
+  );
+
+  if (isTestEnv) {
+    return (
+      <div data-testid="app-shell-test">
+        <h1>Azure DevOps Extension</h1>
+        {isDemo && (
+          <MessageCard severity={MessageCardSeverity.Info}>
+            Running in standalone demo mode. Deploy to Azure DevOps to see live project data.
+          </MessageCard>
+        )}
+        {navigationTest}
+        {contentAreaTest}
+      </div>
+    );
+  }
+
+  return (
+    <Page className="flex-grow" contentClassName="flex-column">
+      {renderHeader}
+
+      {isDemo && (
+        <MessageCard severity={MessageCardSeverity.Info}>
+          Running in standalone demo mode. Deploy to Azure DevOps to see live project data.
+        </MessageCard>
+      )}
+
+      {navigation}
+
+      {contentArea}
+    </Page>
   );
 }

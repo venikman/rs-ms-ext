@@ -1,1 +1,3 @@
+@import "azure-devops-ui/Core/override.css";
+@import "azure-devops-ui/Core/core.css";
 @import "tailwindcss";
